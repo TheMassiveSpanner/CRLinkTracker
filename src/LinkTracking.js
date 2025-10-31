@@ -16,9 +16,24 @@ const linkMap = {
 };
 
 // 🧾 Function to log each click
-function logClick(data) {
-    const logPath = path.join(__dirname, 'clicks.log');
-    fs.appendFileSync(logPath, JSON.stringify(data) + '\n');
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3({ region: 'eu-west-2' }); // use your region
+const BUCKET = 'link-tracker-logs-yourname';
+
+async function logClick(data) {
+    const params = {
+        Bucket: BUCKET,
+        Key: `clicks/${Date.now()}-${data.id}.json`,
+        Body: JSON.stringify(data),
+        ContentType: 'application/json'
+    };
+
+    try {
+        await s3.putObject(params).promise();
+        console.log(`Logged click to S3: ${params.Key}`);
+    } catch (err) {
+        console.error('S3 log failed', err);
+    }
 }
 
 // 🎯 Redirect route
