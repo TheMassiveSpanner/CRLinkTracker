@@ -18,7 +18,7 @@ const linkMap = {
 // 🧾 Function to log each click
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3({ region: 'eu-west-2' }); // use your region
-const BUCKET = 'link-tracker-logs-yourname';
+const BUCKET = 'link-tracking-cool-runnings';
 
 async function logClick(data) {
     const params = {
