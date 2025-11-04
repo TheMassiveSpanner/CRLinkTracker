@@ -16,6 +16,7 @@ const linkMap = {
 
 // 📄 Log file path
 const logDir = '/var/log';
+
 const logFile = path.join(logDir, 'link-tracker.log');
 
 // Ensure the log directory exists
