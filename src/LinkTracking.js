@@ -1,6 +1,6 @@
 // Simple Link Tracker + Redirector
 // Run: node server.js
-// Test: http://<your-server-ip>:3000/r/abc
+// Test: http://<your-server-ip>:3000/r/snReading
 
 const express = require('express');
 const fs = require('fs');
@@ -10,29 +10,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🗺️ Map of short IDs to real URLs
-// Add or edit your tracked links here
 const linkMap = {
     snReading: "https://www.guildofstudents.com/login/?redirect=%2fents%2fevent%2f11466%2f%3fcode%3d3OB15K"
 };
 
-// 🧾 Function to log each click
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3({ region: 'eu-west-2' }); // use your region
-const BUCKET = 'link-tracking-cool-runnings';
+// 📄 Log file path
+const logDir = '/var/log';
+const logFile = path.join(logDir, 'link-tracker.log');
 
-async function logClick(data) {
-    const params = {
-        Bucket: BUCKET,
-        Key: `clicks/${Date.now()}-${data.id}.json`,
-        Body: JSON.stringify(data),
-        ContentType: 'application/json'
-    };
+// Ensure the log directory exists
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+}
 
+// 🪵 Function to log events locally
+function logEvent(event) {
+    const entry = `[${new Date().toISOString()}] ${event}\n`;
     try {
-        await s3.putObject(params).promise();
-        console.log(`Logged click to S3: ${params.Key}`);
+        fs.appendFileSync(logFile, entry);
     } catch (err) {
-        console.error('S3 log failed', err);
+        console.error('Failed to write log:', err);
     }
 }
 
@@ -42,6 +39,7 @@ app.get('/r/:id', (req, res) => {
     const target = linkMap[id];
 
     if (!target) {
+        logEvent(`404 Not Found: ${req.ip} tried to access /r/${id}`);
         return res.status(404).send('Link not found');
     }
 
@@ -54,8 +52,8 @@ app.get('/r/:id', (req, res) => {
         referrer: req.get('referer') || null
     };
 
-    // Save to log
-    logClick(logData);
+    // Save to local file
+    logEvent(`CLICK ${JSON.stringify(logData)}`);
 
     console.log(`Redirected ${req.ip} -> ${target}`);
 
@@ -63,12 +61,13 @@ app.get('/r/:id', (req, res) => {
     res.redirect(302, target);
 });
 
-// 🩺 Health check (optional)
+// 🩺 Health check
 app.get('/', (req, res) => {
     res.send('Link tracker is running');
 });
 
-// 🚀 Start the server
+// 🚀 Start server
 app.listen(PORT, () => {
     console.log(`Redirect tracker running on port ${PORT}`);
+    console.log(`Try: http://localhost:${PORT}/r/snReading`);
 });
